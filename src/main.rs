@@ -1,7 +1,7 @@
 
 
 
-use eframe::egui;
+use eframe::egui::{self, TextBuffer as _};
 
 
 
@@ -21,7 +21,11 @@ fn main() {
 
 
 
-struct Program {}
+struct Program {
+    running_seats: Vec<Seat>,
+
+    seat_name_field_buf: String,
+}
 
 impl Program {
     fn new(cc: &eframe::CreationContext) -> Self {
@@ -45,16 +49,55 @@ impl Program {
             ].into();
         });
 
-        Self {}
+        Self {
+            running_seats: vec![],
+            seat_name_field_buf: String::new(),
+        }
     }
 }
 
 impl eframe::App for Program {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.centered_and_justified(|ui| {
-                ui.heading("TODO");
-            });
+            ui.text_edit_singleline(&mut self.seat_name_field_buf);
+            if ui.button("Run").clicked() {
+                self.running_seats.push(Seat::new(self.seat_name_field_buf.take()));
+            }
+        });
+
+        for seat in self.running_seats.iter_mut() {
+            ctx.show_viewport_immediate(
+                seat.id,
+                egui::ViewportBuilder::default()
+                    .with_title(&seat.name),
+                |ctx, _class| {
+                    seat.update(ctx);
+                },
+            );
+        }
+    }
+}
+
+
+
+struct Seat {
+    id: egui::ViewportId,
+    name: String,
+}
+
+impl Seat {
+    fn new(name: String) -> Self {
+        let id = egui::ViewportId::from_hash_of(&name);
+
+        Self {
+            id,
+            name,
+        }
+    }
+
+    fn update(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.centered_and_justified(|ui| ui.heading(&self.name));
         });
     }
 }
